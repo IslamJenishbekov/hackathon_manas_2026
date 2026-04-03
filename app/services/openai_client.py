@@ -55,3 +55,44 @@ class OpenAIStructuredClient:
 
         return [item.embedding for item in response.data]
 
+    def synthesize_speech(
+        self,
+        *,
+        model: str,
+        voice: str,
+        text: str,
+        response_format: str = "mp3",
+    ) -> bytes:
+        try:
+            response = self._client.audio.speech.create(
+                model=model,
+                voice=voice,
+                input=text,
+                response_format=response_format,
+            )
+        except (APIConnectionError, APIStatusError, APITimeoutError, RateLimitError) as exc:
+            raise OpenAIParseError(str(exc)) from exc
+
+        return response.content
+
+    def transcribe_audio(
+        self,
+        *,
+        model: str,
+        file_name: str,
+        file_bytes: bytes,
+        content_type: str | None = None,
+    ) -> str:
+        try:
+            response = self._client.audio.transcriptions.create(
+                model=model,
+                file=(file_name, file_bytes, content_type or "application/octet-stream"),
+                response_format="json",
+            )
+        except (APIConnectionError, APIStatusError, APITimeoutError, RateLimitError) as exc:
+            raise OpenAIParseError(str(exc)) from exc
+
+        text = getattr(response, "text", None)
+        if not isinstance(text, str) or not text.strip():
+            raise OpenAIParseError("OpenAI returned an empty transcription")
+        return text.strip()

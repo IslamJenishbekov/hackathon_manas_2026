@@ -1,3 +1,4 @@
+from app.api.routes.asr import router as asr_router
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -5,6 +6,7 @@ from fastapi.responses import JSONResponse
 from app.api.routes.chat import router as chat_router
 from app.api.routes.get_info import router as get_info_router
 from app.api.routes.save_doc import router as save_doc_router
+from app.api.routes.voice import router as voice_router
 from app.services.get_info_service import ServiceValidationError, UpstreamServiceError
 
 
@@ -24,6 +26,8 @@ app = FastAPI(title="Hackaton AI 2026", version="0.1.0")
 app.include_router(chat_router)
 app.include_router(get_info_router)
 app.include_router(save_doc_router)
+app.include_router(voice_router)
+app.include_router(asr_router)
 
 
 @app.get("/health")
