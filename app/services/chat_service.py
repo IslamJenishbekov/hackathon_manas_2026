@@ -141,14 +141,15 @@ class ChatService:
                 preferred_doc_types=preferred_doc_types,
             )
 
-        sources = [
-            ChatSource(
-                document_id=chunk.document_id,
-                quote_text=chunk.chunk_text,
-                link=chunk.source_link,
-            )
+        prompt_sources = [
+            {
+                "document_id": chunk.document_id,
+                "quote_text": chunk.chunk_text,
+                "link": chunk.source_link,
+            }
             for chunk in scored_chunks
         ]
+        sources = [ChatSource(document_id=chunk.document_id) for chunk in scored_chunks]
 
         if not sources and not support_profiles:
             return ChatResponse(
@@ -174,7 +175,7 @@ class ChatService:
                             {
                                 "question": request.question,
                                 "history": request.history,
-                                "sources": sources,
+                                "sources": prompt_sources,
                                 "profiles": support_profiles,
                                 "mode": analysis.mode,
                             },

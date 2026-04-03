@@ -113,10 +113,12 @@ class ChatRequest(BaseModel):
 
 class ChatSource(BaseModel):
     document_id: int
-    quote_text: str
-    link: str | None = None
 
 
 class ChatResponse(BaseModel):
     answer: str
     sources: list[ChatSource]
+
+
+class FactOfDayResponse(BaseModel):
+    text: str

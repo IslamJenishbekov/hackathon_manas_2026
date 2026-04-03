@@ -5,6 +5,7 @@ from fastapi import Depends
 from app.core.config import Settings, get_settings
 from app.services.asr_service import ASRService
 from app.services.chat_service import ChatService
+from app.services.fact_of_day_service import FactOfDayService
 from app.services.get_info_service import GetInfoService
 from app.services.index_store import SQLiteIndexStore
 from app.services.openai_client import OpenAIStructuredClient
@@ -89,6 +90,12 @@ def get_chat_service(
         embedding_model=settings.openai_embedding_model,
         retrieval_top_k=settings.retrieval_top_k,
     )
+
+
+def get_fact_of_day_service(
+    index_store: SQLiteIndexStore = Depends(get_index_store),
+) -> FactOfDayService:
+    return FactOfDayService(index_store=index_store)
 
 
 def get_voice_service(

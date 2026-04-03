@@ -4,6 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.api.routes.chat import router as chat_router
+from app.api.routes.fact_of_day import router as fact_of_day_router
 from app.api.routes.get_info import router as get_info_router
 from app.api.routes.pdf import router as pdf_router
 from app.api.routes.save_doc import router as save_doc_router
@@ -34,6 +35,7 @@ def error_response(
 
 app = FastAPI(title="Hackaton AI 2026", version="0.1.0")
 app.include_router(chat_router)
+app.include_router(fact_of_day_router)
 app.include_router(get_info_router)
 app.include_router(pdf_router)
 app.include_router(save_doc_router)
