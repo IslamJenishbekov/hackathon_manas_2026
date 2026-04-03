@@ -55,6 +55,7 @@ class IndexDocumentRecord:
     document_id: int
     person_id: int
     filename: str
+    source_link: str | None
     raw_text: str
     doc_type: str
     primary_full_name: str | None
@@ -105,7 +106,21 @@ class RetrievedChunkRecord:
     embedding: list[float]
     doc_type: str
     filename: str
+    source_link: str | None
     person_id: int
+
+
+@dataclass
+class RetrievedDocumentRecord:
+    document_id: int
+    person_id: int
+    filename: str
+    source_link: str | None
+    raw_text: str
+    doc_type: str
+    primary_full_name: str | None
+    primary_normalized_name: str | None
+    primary_birth_year: int | None
 
 
 class SQLiteIndexStore:
@@ -144,6 +159,7 @@ class SQLiteIndexStore:
                     document_id INTEGER PRIMARY KEY,
                     person_id INTEGER NOT NULL,
                     filename TEXT NOT NULL,
+                    source_link TEXT,
                     raw_text TEXT NOT NULL,
                     doc_type TEXT NOT NULL,
                     primary_full_name TEXT,
@@ -384,6 +400,7 @@ class SQLiteIndexStore:
                     document_id,
                     person_id,
                     filename,
+                    source_link,
                     raw_text,
                     doc_type,
                     primary_full_name,
@@ -396,10 +413,11 @@ class SQLiteIndexStore:
                     warnings_json,
                     updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(document_id) DO UPDATE SET
                     person_id = excluded.person_id,
                     filename = excluded.filename,
+                    source_link = excluded.source_link,
                     raw_text = excluded.raw_text,
                     doc_type = excluded.doc_type,
                     primary_full_name = excluded.primary_full_name,
@@ -416,6 +434,7 @@ class SQLiteIndexStore:
                     document.document_id,
                     document.person_id,
                     document.filename,
+                    document.source_link,
                     document.raw_text,
                     document.doc_type,
                     document.primary_full_name,
@@ -514,6 +533,7 @@ class SQLiteIndexStore:
                 c.embedding_json,
                 d.doc_type,
                 d.filename,
+                d.source_link,
                 d.person_id
             FROM chunks c
             JOIN documents d ON d.document_id = c.document_id
@@ -549,7 +569,63 @@ class SQLiteIndexStore:
                 embedding=json.loads(row[5]),
                 doc_type=row[6],
                 filename=row[7],
-                person_id=row[8],
+                source_link=row[8],
+                person_id=row[9],
+            )
+            for row in rows
+        ]
+
+    def get_document_records(
+        self,
+        *,
+        person_ids: list[int] | None = None,
+        doc_types: list[str] | None = None,
+    ) -> list[RetrievedDocumentRecord]:
+        query = """
+            SELECT
+                document_id,
+                person_id,
+                filename,
+                source_link,
+                raw_text,
+                doc_type,
+                primary_full_name,
+                primary_normalized_name,
+                primary_birth_year
+            FROM documents
+        """
+        conditions: list[str] = []
+        params: list[object] = []
+
+        if person_ids:
+            placeholders = ", ".join("?" for _ in person_ids)
+            conditions.append(f"person_id IN ({placeholders})")
+            params.extend(person_ids)
+
+        if doc_types:
+            placeholders = ", ".join("?" for _ in doc_types)
+            conditions.append(f"doc_type IN ({placeholders})")
+            params.extend(doc_types)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY document_id"
+
+        with self._connect() as connection:
+            rows = connection.execute(query, params).fetchall()
+
+        return [
+            RetrievedDocumentRecord(
+                document_id=row[0],
+                person_id=row[1],
+                filename=row[2],
+                source_link=row[3],
+                raw_text=row[4],
+                doc_type=row[5],
+                primary_full_name=row[6],
+                primary_normalized_name=row[7],
+                primary_birth_year=row[8],
             )
             for row in rows
         ]
@@ -561,6 +637,7 @@ class SQLiteIndexStore:
         self._ensure_column(connection, "persons_shadow", "sentence_date", "TEXT")
         self._ensure_column(connection, "persons_shadow", "rehabilitation_date", "TEXT")
         self._ensure_column(connection, "persons_shadow", "search_text", "TEXT NOT NULL DEFAULT ''")
+        self._ensure_column(connection, "documents", "source_link", "TEXT")
         self._ensure_column(
             connection,
             "persons_shadow",

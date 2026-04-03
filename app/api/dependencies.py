@@ -8,6 +8,7 @@ from app.services.chat_service import ChatService
 from app.services.get_info_service import GetInfoService
 from app.services.index_store import SQLiteIndexStore
 from app.services.openai_client import OpenAIStructuredClient
+from app.services.pdf_ocr_service import PDFOCRService
 from app.services.prompt_renderer import PromptRenderer
 from app.services.save_doc_service import SaveDocService
 from app.services.voice_service import VoiceService
@@ -25,18 +26,6 @@ def get_openai_client(settings: Settings = Depends(get_settings)) -> OpenAIStruc
     )
 
 
-def get_get_info_service(
-    settings: Settings = Depends(get_settings),
-    prompt_renderer: PromptRenderer = Depends(get_prompt_renderer),
-    openai_client: OpenAIStructuredClient = Depends(get_openai_client),
-) -> GetInfoService:
-    return GetInfoService(
-        prompt_renderer=prompt_renderer,
-        openai_client=openai_client,
-        model=settings.openai_model_get_info,
-    )
-
-
 @lru_cache
 def get_index_store_cached(db_path: str) -> SQLiteIndexStore:
     return SQLiteIndexStore(db_path)
@@ -44,6 +33,20 @@ def get_index_store_cached(db_path: str) -> SQLiteIndexStore:
 
 def get_index_store(settings: Settings = Depends(get_settings)) -> SQLiteIndexStore:
     return get_index_store_cached(settings.sqlite_db_path)
+
+
+def get_get_info_service(
+    settings: Settings = Depends(get_settings),
+    prompt_renderer: PromptRenderer = Depends(get_prompt_renderer),
+    openai_client: OpenAIStructuredClient = Depends(get_openai_client),
+    index_store: SQLiteIndexStore = Depends(get_index_store),
+) -> GetInfoService:
+    return GetInfoService(
+        prompt_renderer=prompt_renderer,
+        openai_client=openai_client,
+        model=settings.openai_model_get_info,
+        index_store=index_store,
+    )
 
 
 def get_save_doc_service(
@@ -59,6 +62,16 @@ def get_save_doc_service(
         embedding_model=settings.openai_embedding_model,
         chunk_size=settings.chunk_size_chars,
         chunk_overlap=settings.chunk_overlap_chars,
+    )
+
+
+def get_pdf_ocr_service(
+    settings: Settings = Depends(get_settings),
+    openai_client: OpenAIStructuredClient = Depends(get_openai_client),
+) -> PDFOCRService:
+    return PDFOCRService(
+        openai_client=openai_client,
+        model=settings.openai_model_pdf_ocr,
     )
 
 

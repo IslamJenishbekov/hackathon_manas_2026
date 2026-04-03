@@ -1,3 +1,4 @@
+import base64
 from typing import Any
 
 from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI, RateLimitError
@@ -95,4 +96,47 @@ class OpenAIStructuredClient:
         text = getattr(response, "text", None)
         if not isinstance(text, str) or not text.strip():
             raise OpenAIParseError("OpenAI returned an empty transcription")
+        return text.strip()
+
+    def extract_text_from_pdf(
+        self,
+        *,
+        model: str,
+        file_name: str,
+        file_bytes: bytes,
+    ) -> str:
+        encoded_bytes = base64.b64encode(file_bytes).decode("ascii")
+        file_data = f"data:application/pdf;base64,{encoded_bytes}"
+
+        try:
+            response = self._client.responses.create(
+                model=model,
+                input=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_file",
+                                "filename": file_name,
+                                "file_data": file_data,
+                            },
+                            {
+                                "type": "input_text",
+                                "text": (
+                                    "Extract all readable text from this PDF in page order. "
+                                    "Return only the extracted text. Do not summarize, "
+                                    "translate, explain, normalize, or add markdown."
+                                ),
+                            },
+                        ],
+                    }
+                ],
+                store=False,
+            )
+        except (APIConnectionError, APIStatusError, APITimeoutError, RateLimitError) as exc:
+            raise OpenAIParseError(str(exc)) from exc
+
+        text = getattr(response, "output_text", None)
+        if not isinstance(text, str) or not text.strip():
+            raise OpenAIParseError("OpenAI returned an empty PDF extraction")
         return text.strip()

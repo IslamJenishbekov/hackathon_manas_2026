@@ -48,6 +48,7 @@ class ScoredChunk:
     document_id: int
     chunk_index: int
     chunk_text: str
+    source_link: str | None
     score: float
 
 
@@ -179,6 +180,7 @@ def score_chunks(
                 document_id=chunk.document_id,
                 chunk_index=chunk.chunk_index,
                 chunk_text=chunk.chunk_text,
+                source_link=chunk.source_link,
                 score=score,
             )
         )

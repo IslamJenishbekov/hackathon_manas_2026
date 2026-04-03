@@ -42,6 +42,7 @@ class SaveDocRequest(BaseModel):
     person_id: int
     document_id: int
     filename: str
+    link: str
     text: str
 
     @field_validator("person_id", "document_id")
@@ -57,6 +58,14 @@ class SaveDocRequest(BaseModel):
         cleaned = value.strip()
         if not cleaned:
             raise ValueError("filename must not be empty")
+        return cleaned
+
+    @field_validator("link")
+    @classmethod
+    def validate_link(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("link must not be empty")
         return cleaned
 
     @field_validator("text")
@@ -105,6 +114,7 @@ class ChatRequest(BaseModel):
 class ChatSource(BaseModel):
     document_id: int
     quote_text: str
+    link: str | None = None
 
 
 class ChatResponse(BaseModel):

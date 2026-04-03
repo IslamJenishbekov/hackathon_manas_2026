@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     openai_api_key: SecretStr = Field(alias="OPENAI_API_KEY")
     openai_model_get_info: str = Field(default="gpt-5.4", alias="OPENAI_MODEL_GET_INFO")
+    openai_model_pdf_ocr: str = Field(default="gpt-5.4", alias="OPENAI_MODEL_PDF_OCR")
     openai_model_chat: str = Field(default="gpt-5.4", alias="OPENAI_MODEL_CHAT")
     openai_model_voice_rewrite: str = Field(
         default="gpt-5.4",

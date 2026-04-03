@@ -13,7 +13,7 @@ class FakePromptRenderer:
 
 
 class FakeGetInfoServiceSingle:
-    def handle(self, _request):
+    def analyze(self, _request):
         from app.schemas.api import GetInfoSingleResponse
         from app.schemas.extraction import PersonCardLocalized
 
@@ -78,6 +78,7 @@ def build_index(tmp_path) -> SQLiteIndexStore:
             person_id=1,
             document_id=4412,
             filename="delo_baytemirova.txt",
+            link="https://archive.example/documents/4412",
             text=text,
         )
     )
@@ -100,6 +101,7 @@ def test_chat_service_returns_answer_with_sources(tmp_path) -> None:
     assert "контрреволюционной агитации" in response.answer
     assert len(response.sources) == 2
     assert all(source.document_id == 4412 for source in response.sources)
+    assert all(source.link == "https://archive.example/documents/4412" for source in response.sources)
 
 
 def test_chat_service_returns_archive_not_found_for_unknown_person(tmp_path) -> None:

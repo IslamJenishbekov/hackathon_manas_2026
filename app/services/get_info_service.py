@@ -7,6 +7,8 @@ from app.schemas.extraction import (
     GetInfoSingleLLMOutput,
     PersonCardLocalized,
 )
+from app.services.duplicate_detection import DuplicatePersonMatch, find_duplicate_person
+from app.services.index_store import SQLiteIndexStore
 from app.services.normalization import (
     coalesce_canonical_name,
     compute_missing_fields,
@@ -27,13 +29,34 @@ class UpstreamServiceError(RuntimeError):
     pass
 
 
+class UnsupportedMediaTypeError(ValueError):
+    pass
+
+
+class DuplicatePersonError(RuntimeError):
+    def __init__(self, match: DuplicatePersonMatch) -> None:
+        self.match = match
+        super().__init__(
+            "a likely duplicate person already exists; do not create a new record"
+        )
+
+
 @dataclass
 class GetInfoService:
     prompt_renderer: PromptRenderer
     openai_client: OpenAIStructuredClient
     model: str
+    index_store: SQLiteIndexStore | None = None
 
     def handle(self, request: GetInfoRequest) -> GetInfoSingleResponse | GetInfoPluralResponse:
+        analysis = self.analyze(request)
+        if isinstance(analysis, GetInfoSingleResponse):
+            duplicate_match = self._find_duplicate_match(request.text, analysis)
+            if duplicate_match is not None:
+                raise DuplicatePersonError(duplicate_match)
+        return analysis
+
+    def analyze(self, request: GetInfoRequest) -> GetInfoSingleResponse | GetInfoPluralResponse:
         text = request.text.strip()
         if len(text.split()) < 2 and len(text) < 20:
             raise ServiceValidationError("text is too short to analyze")
@@ -164,3 +187,22 @@ class GetInfoService:
             warnings=warnings,
         )
 
+    def _find_duplicate_match(
+        self,
+        raw_text: str,
+        analysis: GetInfoSingleResponse,
+    ) -> DuplicatePersonMatch | None:
+        if self.index_store is None:
+            return None
+
+        persons = self.index_store.get_person_records()
+        if not persons:
+            return None
+
+        documents = self.index_store.get_document_records(doc_types=["single"])
+        return find_duplicate_person(
+            person_card=analysis.result["ru"],
+            raw_text=raw_text,
+            persons=persons,
+            documents=documents,
+        )

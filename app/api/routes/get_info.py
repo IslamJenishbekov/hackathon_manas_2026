@@ -2,12 +2,22 @@ from fastapi import APIRouter, Depends
 
 from app.api.dependencies import get_get_info_service
 from app.schemas.api import GetInfoRequest, GetInfoResponse
+from app.schemas.errors import ErrorResponse
 from app.services.get_info_service import GetInfoService
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 
-@router.post("/get_info", response_model=GetInfoResponse)
+@router.post(
+    "/get_info",
+    response_model=GetInfoResponse,
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "A likely duplicate person already exists in the archive.",
+        }
+    },
+)
 def get_info(
     request: GetInfoRequest,
     service: GetInfoService = Depends(get_get_info_service),

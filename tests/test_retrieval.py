@@ -43,6 +43,7 @@ def test_score_chunks_returns_top_ranked_items() -> None:
             embedding=[1.0, 0.0],
             doc_type="single",
             filename="a.txt",
+            source_link="https://archive.example/documents/1",
             person_id=1,
         ),
         RetrievedChunkRecord(
@@ -54,6 +55,7 @@ def test_score_chunks_returns_top_ranked_items() -> None:
             embedding=[0.0, 1.0],
             doc_type="single",
             filename="b.txt",
+            source_link="https://archive.example/documents/2",
             person_id=2,
         ),
     ]

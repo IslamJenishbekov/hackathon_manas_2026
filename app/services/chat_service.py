@@ -142,7 +142,11 @@ class ChatService:
             )
 
         sources = [
-            ChatSource(document_id=chunk.document_id, quote_text=chunk.chunk_text)
+            ChatSource(
+                document_id=chunk.document_id,
+                quote_text=chunk.chunk_text,
+                link=chunk.source_link,
+            )
             for chunk in scored_chunks
         ]
 

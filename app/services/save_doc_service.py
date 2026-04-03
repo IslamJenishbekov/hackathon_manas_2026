@@ -32,7 +32,7 @@ class SaveDocService:
     chunk_overlap: int
 
     def handle(self, request: SaveDocRequest) -> SaveDocResponse:
-        analysis = self.get_info_service.handle(GetInfoRequest(text=request.text))
+        analysis = self.get_info_service.analyze(GetInfoRequest(text=request.text))
 
         chunks = chunk_text(
             request.text,
@@ -81,6 +81,7 @@ class SaveDocService:
                 document_id=request.document_id,
                 person_id=request.person_id,
                 filename=request.filename,
+                source_link=request.link,
                 raw_text=request.text,
                 doc_type="single",
                 primary_full_name=ru_card.full_name,
@@ -109,6 +110,7 @@ class SaveDocService:
             document_id=request.document_id,
             person_id=request.person_id,
             filename=request.filename,
+            source_link=request.link,
             raw_text=request.text,
             doc_type="plural",
             primary_full_name=None,
