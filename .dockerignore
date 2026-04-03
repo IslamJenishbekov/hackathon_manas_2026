@@ -1,0 +1,15 @@
+.codex
+.git
+.gitignore
+.pytest_cache
+.venv
+__pycache__/
+*.py[cod]
+.env
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+tests/
+docs/*.mp3
+docs/*.wav
+docs/*.pdf
