@@ -1,0 +1,13 @@
+Current question:
+{{ question }}
+
+History:
+{% if history %}
+{% for item in history %}
+Q: {{ item.question }}
+A: {{ item.answer }}
+{% endfor %}
+{% else %}
+(empty)
+{% endif %}
+

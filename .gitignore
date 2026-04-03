@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+.env
+.codex
+.DS_Store
+data/
+docs/record_out.wav
+docs/salam_menin_atym_islam.mp3
+docs/test_seed_chat_results*.json

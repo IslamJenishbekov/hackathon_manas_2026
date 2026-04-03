@@ -1,0 +1,77 @@
+from functools import lru_cache
+
+from fastapi import Depends
+
+from app.core.config import Settings, get_settings
+from app.services.chat_service import ChatService
+from app.services.get_info_service import GetInfoService
+from app.services.index_store import SQLiteIndexStore
+from app.services.openai_client import OpenAIStructuredClient
+from app.services.prompt_renderer import PromptRenderer
+from app.services.save_doc_service import SaveDocService
+
+
+@lru_cache
+def get_prompt_renderer() -> PromptRenderer:
+    return PromptRenderer()
+
+
+def get_openai_client(settings: Settings = Depends(get_settings)) -> OpenAIStructuredClient:
+    return OpenAIStructuredClient(
+        api_key=settings.openai_api_key.get_secret_value(),
+        timeout_seconds=settings.request_timeout_seconds,
+    )
+
+
+def get_get_info_service(
+    settings: Settings = Depends(get_settings),
+    prompt_renderer: PromptRenderer = Depends(get_prompt_renderer),
+    openai_client: OpenAIStructuredClient = Depends(get_openai_client),
+) -> GetInfoService:
+    return GetInfoService(
+        prompt_renderer=prompt_renderer,
+        openai_client=openai_client,
+        model=settings.openai_model_get_info,
+    )
+
+
+@lru_cache
+def get_index_store_cached(db_path: str) -> SQLiteIndexStore:
+    return SQLiteIndexStore(db_path)
+
+
+def get_index_store(settings: Settings = Depends(get_settings)) -> SQLiteIndexStore:
+    return get_index_store_cached(settings.sqlite_db_path)
+
+
+def get_save_doc_service(
+    settings: Settings = Depends(get_settings),
+    get_info_service: GetInfoService = Depends(get_get_info_service),
+    openai_client: OpenAIStructuredClient = Depends(get_openai_client),
+    index_store: SQLiteIndexStore = Depends(get_index_store),
+) -> SaveDocService:
+    return SaveDocService(
+        get_info_service=get_info_service,
+        openai_client=openai_client,
+        index_store=index_store,
+        embedding_model=settings.openai_embedding_model,
+        chunk_size=settings.chunk_size_chars,
+        chunk_overlap=settings.chunk_overlap_chars,
+    )
+
+
+def get_chat_service(
+    settings: Settings = Depends(get_settings),
+    prompt_renderer: PromptRenderer = Depends(get_prompt_renderer),
+    openai_client: OpenAIStructuredClient = Depends(get_openai_client),
+    index_store: SQLiteIndexStore = Depends(get_index_store),
+) -> ChatService:
+    return ChatService(
+        prompt_renderer=prompt_renderer,
+        openai_client=openai_client,
+        index_store=index_store,
+        model=settings.openai_model_chat,
+        embedding_model=settings.openai_embedding_model,
+        retrieval_top_k=settings.retrieval_top_k,
+    )
+

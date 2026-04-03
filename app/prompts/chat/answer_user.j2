@@ -1,0 +1,50 @@
+Mode: {{ mode }}
+
+Question:
+{{ question }}
+
+History:
+{% if history %}
+{% for item in history %}
+Q: {{ item.question }}
+A: {{ item.answer }}
+{% endfor %}
+{% else %}
+(empty)
+{% endif %}
+
+Source fragments:
+{% if sources %}
+{% for source in sources %}
+- Document {{ source.document_id }}:
+{{ source.quote_text }}
+{% endfor %}
+{% else %}
+(empty)
+{% endif %}
+
+Structured archive profiles:
+{% if profiles %}
+{% for profile in profiles %}
+- Person {{ profile.person_id }}:
+Name: {{ profile.full_name }}
+Birth year: {{ profile.birth_year or "unknown" }}
+Death year: {{ profile.death_year or "unknown" }}
+Region: {{ profile.region or "unknown" }}
+District: {{ profile.district or "unknown" }}
+Occupation: {{ profile.occupation or "unknown" }}
+Charge: {{ profile.charge or "unknown" }}
+Arrest date: {{ profile.arrest_date or "unknown" }}
+Sentence: {{ profile.sentence or "unknown" }}
+Sentence date: {{ profile.sentence_date or "unknown" }}
+Rehabilitation date: {{ profile.rehabilitation_date or "unknown" }}
+Biography:
+{{ profile.biography or "unknown" }}
+Source:
+{{ profile.source or "unknown" }}
+{% endfor %}
+{% else %}
+(empty)
+{% endif %}
+
+Answer the question only from this archive context.
