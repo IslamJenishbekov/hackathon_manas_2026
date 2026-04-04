@@ -58,3 +58,24 @@ Tests:
 ```bash
 .venv/bin/pytest -q
 ```
+
+Chat answer provider:
+
+- `CHAT_ANSWER_PROVIDER=openai` keeps the existing OpenAI answer generation flow
+- `CHAT_ANSWER_PROVIDER=ollama` keeps OpenAI for routing + embeddings, but generates the final `/ai/chat` answer via Ollama
+- `OLLAMA_BASE_URL` defaults to `http://127.0.0.1:11435`
+- `OLLAMA_MODEL_CHAT` defaults to `llama3.1:8b`
+
+Benchmark scripts:
+
+```bash
+python scripts/generate_chat_eval_results.py \
+  --api-url http://127.0.0.1:8000/ai/chat \
+  --output docs/test_seed_chat_results_ollama.json \
+  --answer-provider ollama \
+  --provider-model llama3.1:8b
+
+python scripts/judge_chat_eval_results.py \
+  --input docs/test_seed_chat_results_ollama.json \
+  --output docs/test_seed_chat_metrics_ollama.json
+```

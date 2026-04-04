@@ -4,6 +4,11 @@ from fastapi import Depends
 
 from app.core.config import Settings, get_settings
 from app.services.asr_service import ASRService
+from app.services.chat_answer_generator import (
+    ChatAnswerGenerator,
+    OllamaChatAnswerGenerator,
+    OpenAIChatAnswerGenerator,
+)
 from app.services.chat_service import ChatService
 from app.services.fact_of_day_service import FactOfDayService
 from app.services.get_info_service import GetInfoService
@@ -34,6 +39,23 @@ def get_index_store_cached(db_path: str) -> SQLiteIndexStore:
 
 def get_index_store(settings: Settings = Depends(get_settings)) -> SQLiteIndexStore:
     return get_index_store_cached(settings.sqlite_db_path)
+
+
+def get_chat_answer_generator(
+    settings: Settings = Depends(get_settings),
+    openai_client: OpenAIStructuredClient = Depends(get_openai_client),
+) -> ChatAnswerGenerator:
+    if settings.chat_answer_provider == "ollama":
+        return OllamaChatAnswerGenerator(
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_model_chat,
+            timeout_seconds=settings.request_timeout_seconds,
+        )
+
+    return OpenAIChatAnswerGenerator(
+        openai_client=openai_client,
+        model=settings.openai_model_chat,
+    )
 
 
 def get_get_info_service(
@@ -80,13 +102,15 @@ def get_chat_service(
     settings: Settings = Depends(get_settings),
     prompt_renderer: PromptRenderer = Depends(get_prompt_renderer),
     openai_client: OpenAIStructuredClient = Depends(get_openai_client),
+    answer_generator: ChatAnswerGenerator = Depends(get_chat_answer_generator),
     index_store: SQLiteIndexStore = Depends(get_index_store),
 ) -> ChatService:
     return ChatService(
         prompt_renderer=prompt_renderer,
         openai_client=openai_client,
+        answer_generator=answer_generator,
         index_store=index_store,
-        model=settings.openai_model_chat,
+        analysis_model=settings.openai_model_chat,
         embedding_model=settings.openai_embedding_model,
         retrieval_top_k=settings.retrieval_top_k,
     )

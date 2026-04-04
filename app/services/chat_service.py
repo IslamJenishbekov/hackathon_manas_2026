@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 
 from app.schemas.api import ChatRequest, ChatResponse, ChatSource
-from app.schemas.chat import ChatAnswerDraft, ChatQueryAnalysis
+from app.schemas.chat import ChatQueryAnalysis
+from app.services.chat_answer_generator import ChatAnswerGenerationError, ChatAnswerGenerator
 from app.services.get_info_service import UpstreamServiceError
 from app.services.index_store import RetrievedPersonRecord, SQLiteIndexStore
 from app.services.openai_client import OpenAIParseError, OpenAIStructuredClient
@@ -17,8 +18,9 @@ from app.services.retrieval import (
 class ChatService:
     prompt_renderer: PromptRenderer
     openai_client: OpenAIStructuredClient
+    answer_generator: ChatAnswerGenerator
     index_store: SQLiteIndexStore
-    model: str
+    analysis_model: str
     embedding_model: str
     retrieval_top_k: int
 
@@ -157,42 +159,35 @@ class ChatService:
                 sources=[],
             )
 
+        system_prompt = self.prompt_renderer.render(
+            "chat/answer_system.j2",
+            {},
+        )
+        user_prompt = self.prompt_renderer.render(
+            "chat/answer_user.j2",
+            {
+                "question": request.question,
+                "history": request.history,
+                "sources": prompt_sources,
+                "profiles": support_profiles,
+                "mode": analysis.mode,
+            },
+        )
+
         try:
-            answer_draft: ChatAnswerDraft = self.openai_client.parse(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": self.prompt_renderer.render(
-                            "chat/answer_system.j2",
-                            {},
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": self.prompt_renderer.render(
-                            "chat/answer_user.j2",
-                            {
-                                "question": request.question,
-                                "history": request.history,
-                                "sources": prompt_sources,
-                                "profiles": support_profiles,
-                                "mode": analysis.mode,
-                            },
-                        ),
-                    },
-                ],
-                response_model=ChatAnswerDraft,
+            answer = self.answer_generator.generate(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
             )
-        except OpenAIParseError as exc:
+        except ChatAnswerGenerationError as exc:
             raise UpstreamServiceError("failed to generate chat answer") from exc
 
-        return ChatResponse(answer=answer_draft.answer.strip(), sources=sources)
+        return ChatResponse(answer=answer, sources=sources)
 
     def _analyze_query(self, request: ChatRequest) -> ChatQueryAnalysis:
         try:
             return self.openai_client.parse(
-                model=self.model,
+                model=self.analysis_model,
                 messages=[
                     {
                         "role": "system",
