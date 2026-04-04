@@ -1,0 +1,6 @@
+[submodule "hackathon_manas_2026_ollama"]
+	path = hackathon_manas_2026_ollama
+	url = https://github.com/IslamJenishbekov/hackathon_manas_2026_ollama.git
+[submodule "ocr_paddle"]
+	path = ocr_paddle
+	url = https://github.com/IslamJenishbekov/ocr_paddle.git

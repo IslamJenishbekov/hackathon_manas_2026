@@ -59,23 +59,8 @@ Tests:
 .venv/bin/pytest -q
 ```
 
-Chat answer provider:
+PDF extraction:
 
-- `CHAT_ANSWER_PROVIDER=openai` keeps the existing OpenAI answer generation flow
-- `CHAT_ANSWER_PROVIDER=ollama` keeps OpenAI for routing + embeddings, but generates the final `/ai/chat` answer via Ollama
-- `OLLAMA_BASE_URL` defaults to `http://127.0.0.1:11435`
-- `OLLAMA_MODEL_CHAT` defaults to `llama3.1:8b`
-
-Benchmark scripts:
-
-```bash
-python scripts/generate_chat_eval_results.py \
-  --api-url http://127.0.0.1:8000/ai/chat \
-  --output docs/test_seed_chat_results_ollama.json \
-  --answer-provider ollama \
-  --provider-model llama3.1:8b
-
-python scripts/judge_chat_eval_results.py \
-  --input docs/test_seed_chat_results_ollama.json \
-  --output docs/test_seed_chat_metrics_ollama.json
-```
+- if `LAYOUT_PARSING_BASE_URL` is set, `POST /ai/extract_pdf_text` first calls `<base_url>/layout-parsing`
+- if that upstream returns an error or an unreadable response, the service falls back to the current OpenAI PDF OCR flow
+- if `LAYOUT_PARSING_BASE_URL` is empty, the service uses OpenAI PDF OCR directly

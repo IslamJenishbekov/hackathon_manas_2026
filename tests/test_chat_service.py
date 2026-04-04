@@ -3,11 +3,11 @@ from pathlib import Path
 import pytest
 
 from app.schemas.api import ChatRequest
-from app.schemas.chat import ChatQueryAnalysis
-from app.services.chat_answer_generator import ChatAnswerGenerationError
+from app.schemas.chat import ChatAnswerDraft, ChatQueryAnalysis
 from app.services.chat_service import ChatService
 from app.services.get_info_service import UpstreamServiceError
 from app.services.index_store import SQLiteIndexStore
+from app.services.openai_client import OpenAIParseError
 from app.services.save_doc_service import SaveDocService
 
 
@@ -45,6 +45,8 @@ class FakeOpenAIClient:
         name = response_model.__name__
         if name == "ChatQueryAnalysis":
             return ChatQueryAnalysis(mode="person", candidate_names=["Байтемиров"], warnings=[])
+        if name == "ChatAnswerDraft":
+            return ChatAnswerDraft(answer="Байтемиров был арестован по обвинению в контрреволюционной агитации.")
         raise AssertionError(f"unexpected structured parse for {name}")
 
     def embed_texts(self, *, model: str, texts: list[str]) -> list[list[float]]:
@@ -61,16 +63,12 @@ class FakeOpenAIClientUnknownPerson(FakeOpenAIClient):
         return super().parse(model=model, messages=messages, response_model=response_model)
 
 
-class FakeAnswerGenerator:
-    def generate(self, *, system_prompt: str, user_prompt: str) -> str:
-        assert "chat/answer_system.j2" in system_prompt
-        assert "Байтемиров" in user_prompt
-        return "Байтемиров был арестован по обвинению в контрреволюционной агитации."
-
-
-class FailingAnswerGenerator:
-    def generate(self, *, system_prompt: str, user_prompt: str) -> str:
-        raise ChatAnswerGenerationError("boom")
+class FailingOpenAIClient(FakeOpenAIClient):
+    def parse(self, *, model: str, messages: list[dict[str, object]], response_model: type[object]) -> object:
+        name = response_model.__name__
+        if name == "ChatAnswerDraft":
+            raise OpenAIParseError("boom")
+        return super().parse(model=model, messages=messages, response_model=response_model)
 
 
 def build_index(tmp_path) -> SQLiteIndexStore:
@@ -104,9 +102,8 @@ def test_chat_service_returns_answer_with_sources(tmp_path) -> None:
     service = ChatService(
         prompt_renderer=FakePromptRenderer(),
         openai_client=FakeOpenAIClient(),
-        answer_generator=FakeAnswerGenerator(),
         index_store=store,
-        analysis_model="test-chat-model",
+        model="test-chat-model",
         embedding_model="test-embedding-model",
         retrieval_top_k=2,
     )
@@ -123,9 +120,8 @@ def test_chat_service_returns_archive_not_found_for_unknown_person(tmp_path) -> 
     service = ChatService(
         prompt_renderer=FakePromptRenderer(),
         openai_client=FakeOpenAIClientUnknownPerson(),
-        answer_generator=FakeAnswerGenerator(),
         index_store=store,
-        analysis_model="test-chat-model",
+        model="test-chat-model",
         embedding_model="test-embedding-model",
         retrieval_top_k=2,
     )
@@ -140,13 +136,12 @@ def test_chat_service_raises_upstream_error_when_answer_generation_fails(tmp_pat
     store = build_index(tmp_path)
     service = ChatService(
         prompt_renderer=FakePromptRenderer(),
-        openai_client=FakeOpenAIClient(),
-        answer_generator=FailingAnswerGenerator(),
+        openai_client=FailingOpenAIClient(),
         index_store=store,
-        analysis_model="test-chat-model",
+        model="test-chat-model",
         embedding_model="test-embedding-model",
         retrieval_top_k=2,
     )
 
-    with pytest.raises(UpstreamServiceError, match="failed to generate chat answer"):
+    with pytest.raises(UpstreamServiceError):
         service.handle(ChatRequest(question="За что арестовали Байтемирова?"))

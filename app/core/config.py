@@ -1,5 +1,4 @@
 from functools import lru_cache
-from typing import Literal
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,17 +14,12 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr = Field(alias="OPENAI_API_KEY")
     openai_model_get_info: str = Field(default="gpt-5.4", alias="OPENAI_MODEL_GET_INFO")
     openai_model_pdf_ocr: str = Field(default="gpt-5.4", alias="OPENAI_MODEL_PDF_OCR")
+    layout_parsing_base_url: str = Field(default="", alias="LAYOUT_PARSING_BASE_URL")
     openai_model_chat: str = Field(default="gpt-5.4", alias="OPENAI_MODEL_CHAT")
     openai_model_voice_rewrite: str = Field(
         default="gpt-5.4",
         alias="OPENAI_MODEL_VOICE_REWRITE",
     )
-    chat_answer_provider: Literal["openai", "ollama"] = Field(
-        default="openai",
-        alias="CHAT_ANSWER_PROVIDER",
-    )
-    ollama_base_url: str = Field(default="http://127.0.0.1:11435", alias="OLLAMA_BASE_URL")
-    ollama_model_chat: str = Field(default="llama3.1:8b", alias="OLLAMA_MODEL_CHAT")
     openai_embedding_model: str = Field(
         default="text-embedding-3-large",
         alias="OPENAI_EMBEDDING_MODEL",
